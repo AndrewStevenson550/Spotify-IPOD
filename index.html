@@ -3,263 +3,869 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iSpotify Player</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Spotify iPod</title>
+    <!-- We'll use the Inter font for a clean, modern-retro look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* Use Inter font, which is similar to the iPod's font */
+        /* Basic page setup */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            -webkit-user-select: none; /* Prevents text selection during wheel drag */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-        /* Create the inner shadow for the click wheel */
-        .click-wheel-inset {
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+
+        /* The main iPod body */
+        #ipod-container {
+            width: 320px;
+            height: 500px;
+            background: linear-gradient(to bottom, #f9f9f9, #e0e0e0);
+            border: 1px solid #aaa;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 3px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        /* Create the subtle gradient for the center button */
-        .select-button-gradient {
-            background-image: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
+
+        /* The screen */
+        #ipod-screen {
+            width: 100%;
+            height: 200px;
+            background-color: #cddbec;
+            border: 3px solid #707070;
+            border-radius: 8px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        .select-button-gradient:active {
-            background-image: linear-gradient(to top, #e0e0e0, #c0c0c0);
+
+        /* Screen Header */
+        .screen-header {
+            background: linear-gradient(to bottom, #ffffff, #d4d4d4);
+            padding: 4px 8px;
+            font-weight: 700;
+            font-size: 16px;
+            color: #333;
+            border-bottom: 2px solid #aaa;
+            text-align: center;
+            position: relative;
         }
+        
+        /* Battery/Status Icon Placeholder */
+        .screen-header::after {
+            content: '■'; /* Placeholder for battery icon */
+            position: absolute;
+            right: 8px;
+            top: 4px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* Menu List */
+        .menu-list {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            flex-grow: 1;
+            overflow: hidden; /* Ensures no scrollbar */
+        }
+
+        .menu-item {
+            padding: 6px 10px;
+            font-size: 16px;
+            font-weight: 500;
+            border-bottom: 1px solid #b8c8d8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* The highlighted/selected menu item */
+        .menu-item.selected {
+            background-color: #3b76bc;
+            color: white;
+        }
+        
+        .menu-item > .chevron {
+            display: none;
+        }
+        
+        .menu-item.selected > .chevron {
+            display: block;
+            font-weight: 700;
+        }
+
+        /* Click Wheel Area */
+        #click-wheel-container {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, #dcdcdc, #f0f0f0);
+            margin-top: 30px;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* The center button */
+        #center-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
+            border: 1px solid #aaa;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        #center-button:active {
+            background: linear-gradient(to top, #e0e0e0, #c0c0c0);
+        }
+
+        /* Labels on the click wheel */
+        .wheel-label {
+            position: absolute;
+            font-size: 14px;
+            font-weight: 700;
+            color: #888;
+            z-index: 5;
+        }
+        #label-menu { top: 20px; left: 50%; transform: translateX(-50%); }
+        #label-next { right: 20px; top: 50%; transform: translateY(-50%); }
+        #label-prev { left: 20px; top: 50%; transform: translateY(-50%); }
+        #label-play { bottom: 20px; left: 50%; transform: translateX(-50%); }
+
+        /* Clickable hotspots for wheel buttons */
+        .wheel-hotspot {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            z-index: 9;
+        }
+        #hotspot-menu { top: 0; left: 50%; transform: translateX(-50%); }
+        #hotspot-next { right: 0; top: 50%; transform: translateY(-50%); }
+        #hotspot-prev { left: 0; top: 50%; transform: translateY(-50%); }
+        #hotspot-play { bottom: 0; left: 50%; transform: translateX(-50%); }
+        
+        /* Now Playing Screen (hidden by default) */
+        #now-playing-screen {
+            display: none;
+            padding: 10px;
+            box-sizing: border-box;
+            height: 100%;
+            text-align: center;
+        }
+        
+        #album-art {
+            width: 100px;
+            height: 100px;
+            background-color: #aaa;
+            margin: 10px auto;
+            border: 2px solid #555;
+            text-align: center;
+            line-height: 100px;
+            font-size: 12px;
+            color: #eee;
+        }
+        
+        #song-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        #song-artist {
+            font-size: 14px;
+            font-weight: 500;
+            color: #444;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
     </style>
 </head>
-<body class="bg-gray-900 flex items-center justify-center min-h-screen font-sans">
+<body>
 
-    <!-- LOGIN BUTTON - We'll put this outside the iPod for now -->
-    <button id="btn-login" class="absolute top-4 right-4 bg-green-500 text-white font-bold py-2 px-4 rounded-full shadow-lg hover:bg-green-600 transition-colors">
-        Login with Spotify
-    </button>
-
-    <!-- iPod Body -->
-    <div class="w-72 h-[520px] bg-gradient-to-b from-gray-200 to-gray-300 rounded-3xl shadow-2xl p-4 flex flex-col gap-4 border-2 border-gray-400">
-
-        <!-- Screen Container -->
-        <div class="h-2/5 bg-gray-800 rounded-lg p-1 border-2 border-gray-900">
-            <div class="bg-blue-100 w-full h-full rounded flex flex-col overflow-hidden">
-                
-                <!-- Screen Header -->
-                <div class="flex justify-between items-center px-3 py-1 bg-gray-300 border-b border-gray-400">
-                    <span class="font-bold text-sm text-gray-800">iSpotify</span>
-                    <!-- Battery Icon -->
-                    <svg class="w-5 h-5 text-gray-800" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">
-                        <path d="M18.364 5.636a9 9 0 11-12.728 0M12 2v10"></path>
-                        <path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"></path>
-                    </svg>
-                </div>
-
-                <!-- Screen Content -->
-                <div class="flex-grow relative">
-                    
-                    <!-- Menu View -->
-                    <div id="menu-view" class="absolute inset-0">
-                        <ul id="menu-list" class="list-none m-0 p-0 text-gray-900">
-                            <li class="px-3 py-1.5 font-semibold text-sm border-b border-gray-300" data-view="now-playing">
-                                Now Playing
-                            </li>
-                            <li class="px-3 py-1.5 font-semibold text-sm border-b border-gray-300" data-view="playlists">
-                                Playlists
-                            </li>
-                            <li class="px-3 py-1.5 font-semibold text-sm border-b border-gray-300" data-view="search">
-                                Search
-                            </li>
-                            <li class="px-3 py-1.5 font-semibold text-sm" data-view="settings">
-                                Settings
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- Now Playing View -->
-                    <div id="now-playing-view" class="absolute inset-0 p-3 flex flex-col items-center justify-start hidden">
-                        <!-- Placeholder for Album Art -->
-                        <div class="w-28 h-28 bg-gray-400 rounded-md shadow-md flex items-center justify-center text-gray-600 mt-2">
-                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2zm12-3c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z"></path></svg>
-                        </div>
-                        <h2 id="song-title" class="text-lg font-bold text-gray-900 mt-3 text-center truncate w-full">Song Title</h2>
-                        <p id="song-artist" class="text-sm text-gray-700 text-center truncate w-full">Artist Name</p>
-                        <p id="song-album" class="text-xs text-gray-600 text-center truncate w-full">Album</p>
-                        
-                        <!-- Scrub Bar -->
-                        <div class="w-full h-1.5 bg-gray-400 rounded-full mt-4">
-                            <div class="w-1/3 h-full bg-blue-500 rounded-full"></div>
-                        </div>
-                    </div>
-
-                </div>
+    <!-- The main iPod structure -->
+    <div id="ipod-container">
+        
+        <!-- The Screen -->
+        <div id="ipod-screen">
+            <!-- Header Bar -->
+            <div class="screen-header" id="screen-title">iPod</div>
+            
+            <!-- Menu List -->
+            <ul class="menu-list" id="menu-list">
+                <!-- Items will be dynamically inserted here by JS -->
+            </ul>
+            
+            <!-- Now Playing View -->
+            <div id="now-playing-screen">
+                <div id="album-art">Art</div>
+                <div id="song-title">Song Title</div>
+                <div id="song-artist">Artist Name</div>
             </div>
         </div>
-
-        <!-- Click Wheel Container -->
-        <div class="h-3/5 flex-grow flex items-center justify-center">
-            <div class="w-48 h-48 bg-gray-300 rounded-full relative shadow-inner click-wheel-inset border-2 border-gray-400">
-                
-                <!-- Buttons -->
-                <button id="btn-menu" class="absolute top-3 left-1/2 -translate-x-1/2 text-gray-700 font-bold text-sm tracking-wider z-10">MENU</button>
-                
-                <button id="btn-prev" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 z-10 p-2 rounded-full active:bg-gray-400">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8.445 14.832A1 1 0 0010 14.226V5.774a1 1 0 00-1.555-.832L4 8.674V5.774a1 1 0 00-2 0v8.452a1 1 0 002 0v-2.9l4.445 3.5z"></path></svg>
-                </button>
-                
-                <button id="btn-next" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-700 z-10 p-2 rounded-full active:bg-gray-400">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M11.555 5.168A1 1 0 0010 5.774v8.452a1 1 0 001.555.832L16 11.326v2.9a1 1 0 002 0V5.774a1 1 0 00-2 0v2.9l-4.445-3.5z"></path></svg>
-                </button>
-                
-                <button id="btn-play" class="absolute bottom-3 left-1/2 -translate-x-1/2 text-gray-700 z-10 p-2 rounded-full active:bg-gray-400">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8.006v3.988a1 1 0 001.555.832l3.198-1.994a1 1 0 000-1.664l-3.198-1.994z" clip-rule="evenodd"></path></svg>
-                </button>
-
-                <!-- Center Select Button -->
-                <div id="btn-select" class="absolute w-16 h-16 bg-gray-400 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-md border-2 border-gray-500 cursor-pointer select-button-gradient">
-                </div>
-            </div>
+        
+        <!-- The Click Wheel -->
+        <div id="click-wheel-container">
+            <!-- Labels -->
+            <div id="label-menu" class="wheel-label">MENU</div>
+            <div id="label-next" class="wheel-label">>||</div>
+            <div id="label-prev" class="wheel-label">||<</div>
+            <div id="label-play" class="wheel-label">>||</div>
+            
+            <!-- Clickable Hotspots -->
+            <div id="hotspot-menu" class="wheel-hotspot"></div>
+            <div id="hotspot-next" class="wheel-hotspot"></div>
+            <div id="hotspot-prev" class="wheel-hotspot"></div>
+            <div id="hotspot-play" class="wheel-hotspot"></div>
+            
+            <!-- Center Button -->
+            <div id="center-button"></div>
         </div>
-
     </div>
+    
+    <!-- Audio element for click sounds -->
+    <audio id="click-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTSEUAAAABA1dWMFExLjdjN1lBL1JmS0JEK3dVTUFmQkYrRTRwV0s3ZkFmUjBKQllBAAAAHFRTT0EAAAABA1dXMlU5aGVDMVlEbkZ3cGtodS9oZkY3YkRzN1BqK1lpeXU5V1lnN0tna3c9AAAAD1RTT0wAAAABA1dXbWl4IGJ5IFdXMlU5aGVDMVlEbkZ3cGtodS9oZkY3YkRzN1BqK1lpeXU5V1lnN0tna3c9AAAAFlRDRU4AAAABAFdXK2JCSis2Q0Y1R3RKV0p0YmF4WHc9AAAABFdNQUIAAAABAFdXaHR0cHM6Ly93d3cueW91dHViZS5jb20vd2F0Y2g/dj12MUIwVjFmRjJoZwAAAAhUWUVSBAAAAAEA/+MYxAAAAAAAAAAAAAAAAAAAAAAD/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1QAAAKkAav/5xAX/8xmAIAAAAVQBsAAAPoAAAR8AAAAnAABJAAAAFEAAACcAAQkAAANQAAACpABsAAAAAAAAA/+MYxBsAAAFUAasAAA+gAAAjwAAACcAAEmQAAA0QAAAJsAAEAAAA1Amk=/" type="audio/mpeg">
+    </audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Spotify API ---
-            // 1. Add your Client ID from the Spotify Dashboard
-            //    (It's safe to have this in the front-end)
-            const CLIENT_ID = "cc3e477403484a58a4673502ef0a9a70"; // This is from your screenshot
-            const REDIRECT_URI = "http://127.0.0.1:5500/callback.html"; // Must match Spotify Dashboard!
 
-            // 2. Define the 'scopes' - what we want to ask permission for
-            const scopes = [
-                "user-read-currently-playing", // Read what's currently playing
-                "user-modify-playback-state",  // Play, pause, skip
-                "playlist-read-private",       // Read private playlists
-                "playlist-read-collaborative"  // Read collaborative playlists
-            ].join(" "); // Join them with a space
-
-            // 3. Login Button Click
-            document.getElementById('btn-login').addEventListener('click', () => {
-                // Generate a random string for 'state' (helps with security)
-                const state = Array.from({ length: 16 }, () => Math.random().toString(36)[2]).join('');
-                // We'll store this in the browser to check it later
-                localStorage.setItem('spotify_auth_state', state);
-
-                // Build the URL to send the user to Spotify's login
-                let authUrl = "https://accounts.spotify.com/authorize";
-                authUrl += "?response_type=code";
-                authUrl += "&client_id=" + CLIENT_ID;
-                authUrl += "&scope=" + encodeURIComponent(scopes);
-                authUrl += "&redirect_uri=" + encodeURIComponent(REDIRECT_URI);
-                authUrl += "&state=" + encodeURIComponent(state);
-
-                // Send the user to the login page!
-                window.location.href = authUrl;
-            });
-
-
-            // --- iPod UI ---
-            let currentView = 'menu';
-            let selectedMenuItem = 0;
-
-            const menuList = document.getElementById('menu-list');
-            const menuItems = menuList.querySelectorAll('li');
+            // =================================================================================
+            // == 1. SPOTIFY AUTH & API SETUP
+            // =================================================================================
             
-            const views = {
-                'menu': document.getElementById('menu-view'),
-                'now-playing': document.getElementById('now-playing-view'),
-                'playlists': null, // Placeholder
-                'search': null,    // Placeholder
-                'settings': null,  // Placeholder
+            // ---------------------------------------------------------------------------------
+            // !! IMPORTANT !!
+            // 1. Go to https://developer.spotify.com/dashboard/
+            // 2. Create a new App.
+            // 3. Set this CLIENT_ID to your app's Client ID.
+            // 4. In your Spotify App's settings, add a "Redirect URI". 
+            //    This app will SHOW YOU what to use. Go to Settings on the iPod screen.
+            // ---------------------------------------------------------------------------------
+            const CLIENT_ID = ""; // <-- !! PASTE YOUR SPOTIFY CLIENT ID HERE
+            
+            // This will use the exact URL you are currently on, removing any extra bits
+            const redirectUri = window.location.href.split('?')[0];
+            
+            // Spotify API endpoints
+            const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
+            const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
+            const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
+
+            // Scopes we are requesting from the user
+            const scopes = [
+                'user-read-private',
+                'user-read-email',
+                'playlist-read-private',
+                'user-library-read',
+                // Add these if you want to implement web playback:
+                // 'streaming', 
+                // 'user-read-playback-state',
+                // 'user-modify-playback-state'
+            ].join(' ');
+
+            // =================================================================================
+            // == 2. DOM ELEMENT REFERENCES
+            // =================================================================================
+            
+            const screenTitle = document.getElementById('screen-title');
+            const menuList = document.getElementById('menu-list');
+            const nowPlayingScreen = document.getElementById('now-playing-screen');
+            const wheel = document.getElementById('click-wheel-container');
+            const centerButton = document.getElementById('center-button');
+            const menuButton = document.getElementById('hotspot-menu');
+            const nextButton = document.getElementById('hotspot-next');
+            const prevButton = document.getElementById('hotspot-prev');
+            const playButton = document.getElementById('hotspot-play');
+            const clickSound = document.getElementById('click-sound');
+
+            // =================================================================================
+            // == 3. APPLICATION STATE
+            // =================================================================================
+            
+            let state = {
+                activeMenu: 'mainMenu',
+                activeIndex: 0,
+                menuStack: ['mainMenu'], // For "back" button functionality
+                accessToken: localStorage.getItem('spotify_access_token'),
+                tokenExpires: localStorage.getItem('spotify_token_expires'),
+                nowPlaying: null // Will hold song info
             };
 
-            // --- Helper Functions ---
-
-            function updateMenuUI() {
-                // Remove 'active' class from all items
-                menuItems.forEach(item => {
-                    item.classList.remove('bg-blue-500', 'text-white');
-                });
-                // Add 'active' class to the selected item
-                menuItems[selectedMenuItem].classList.add('bg-blue-500', 'text-white');
+            // Define the menu structure
+            const menus = {
+                'mainMenu': {
+                    title: 'iPod',
+                    items: [
+                        { name: 'Now Playing', screen: 'nowPlaying' },
+                        { name: 'Music', screen: 'musicMenu' },
+                        { name: 'Settings', screen: 'settingsMenu' },
+                    ]
+                },
+                'musicMenu': {
+                    title: 'Music',
+                    items: [
+                        { name: 'Playlists', screen: 'playlistsMenu', action: fetchPlaylists },
+                        { name: 'Saved Songs', screen: 'savedSongsMenu', action: fetchSavedSongs }
+                    ]
+                },
+                'settingsMenu': {
+                    title: 'Settings',
+                    items: [
+                        { name: 'Log In to Spotify', action: handleLogin, show: 'loggedOut' },
+                        { name: 'Log Out', action: handleLogout, show: 'loggedIn' },
+                        { name: 'Your Redirect URI:', show: 'loggedOut' }, // Helper for user
+                        { name: redirectUri, show: 'loggedOut', isInfo: true } // Helper for user
+                    ]
+                },
+                'playlistsMenu': {
+                    title: 'Playlists',
+                    items: [], // Will be populated by API
+                    isDynamic: true
+                },
+                'savedSongsMenu': {
+                    title: 'Saved Songs',
+                    items: [], // Will be populated by API
+                    isDynamic: true
+                },
+                'tracksMenu': {
+                    title: 'Tracks',
+                    items: [], // Will be populated by API
+                    isDynamic: true
+                }
+            };
+            
+            // Check if token is expired
+            if (state.accessToken && state.tokenExpires && new Date().getTime() > state.tokenExpires) {
+                state.accessToken = null;
+                state.tokenExpires = null;
+                localStorage.removeItem('spotify_access_token');
+                localStorage.removeItem('spotify_token_expires');
             }
 
-            function setView(viewName) {
-                // Hide all views
-                Object.values(views).forEach(view => {
-                    if (view) view.classList.add('hidden');
-                });
 
-                // Show the selected view
-                if (views[viewName]) {
-                    views[viewName].classList.remove('hidden');
-                    currentView = viewName;
-                } else {
-                    // Fallback to menu if view doesn't exist
-                    views['menu'].classList.remove('hidden');
-                    currentView = 'menu';
-                }
-            }
+            // =================================================================================
+            // == 4. UI RENDERING
+            // =================================================================================
 
-            // --- Event Listeners ---
-
-            // Scroll Down (Next Button)
-            document.getElementById('btn-next').addEventListener('click', () => {
-                if (currentView === 'menu') {
-                    selectedMenuItem++;
-                    if (selectedMenuItem >= menuItems.length) {
-                        selectedMenuItem = 0; // Wrap around
-                    }
-                    updateMenuUI();
-                } else {
-                    // Future: Skip to next track
-                    console.log('Next Track');
-                }
-            });
-
-            // Scroll Up (Previous Button)
-            document.getElementById('btn-prev').addEventListener('click', () => {
-                if (currentView === 'menu') {
-                    selectedMenuItem--;
-                    if (selectedMenuItem < 0) {
-                        selectedMenuItem = menuItems.length - 1; // Wrap around
-                    }
-                    updateMenuUI();
-                } else {
-                    // Future: Previous track
-                    console.log('Previous Track');
-                }
-            });
-
-            // Menu Button
-            document.getElementById('btn-menu').addEventListener('click', () => {
-                setView('menu');
-            });
-
-            // Select Button
-            document.getElementById('btn-select').addEventListener('click', () => {
-                if (currentView === 'menu') {
-                    const selectedItem = menuItems[selectedMenuItem];
-                    const viewToOpen = selectedItem.dataset.view;
+            function renderScreen() {
+                const menu = menus[state.activeMenu];
+                
+                // Special case for 'Now Playing' screen
+                if (state.activeMenu === 'nowPlaying') {
+                    menuList.style.display = 'none';
+                    nowPlayingScreen.style.display = 'block';
+                    screenTitle.innerText = 'Now Playing';
                     
-                    if (viewToOpen) {
-                        setView(viewToOpen);
+                    if (state.nowPlaying) {
+                        document.getElementById('song-title').innerText = state.nowPlaying.name;
+                        document.getElementById('song-artist').innerText = state.nowPlaying.artists[0].name;
+                        const artUrl = state.nowPlaying.album.images[1]?.url;
+                        if(artUrl) {
+                            document.getElementById('album-art').innerHTML = `<img src="${artUrl}" width="100" height="100" style="border:0;" alt="Album Art">`;
+                        } else {
+                            document.getElementById('album-art').innerText = 'No Art';
+                        }
                     } else {
-                        console.log('This menu item is not implemented.');
+                        document.getElementById('song-title').innerText = 'Nothing Playing';
+                        document.getElementById('song-artist').innerText = '-';
+                        document.getElementById('album-art').innerText = 'Art';
                     }
+                    return;
                 }
-            });
+                
+                // Hide 'Now Playing' screen and show menu
+                menuList.style.display = 'block';
+                nowPlayingScreen.style.display = 'none';
 
-            // Play/Pause Button
-            document.getElementById('btn-play').addEventListener('click', () => {
-                // Future: Control Spotify playback
-                console.log('Play/Pause Toggled');
-                // For demonstration, you could toggle the Now Playing view
-                if (currentView !== 'now-playing') {
-                    setView('now-playing');
+                if (!menu) return;
+
+                // Set screen title
+                screenTitle.innerText = menu.title;
+
+                // Clear current list
+                menuList.innerHTML = '';
+
+                // Filter items based on login state
+                const itemsToRender = menu.items.filter(item => {
+                    if (item.show === 'loggedIn' && !state.accessToken) return false;
+                    if (item.show === 'loggedOut' && state.accessToken) return false;
+                    return true;
+                });
+                
+                // Handle empty dynamic menus
+                if (menu.isDynamic && itemsToRender.length === 0 && state.accessToken) {
+                    menuList.innerHTML = `<li class="menu-item">Loading...</li>`;
+                } else if (!state.accessToken && menu.isDynamic) {
+                     menuList.innerHTML = `<li class="menu-item">Please log in...</li>`;
                 }
-            });
+                
+                // Handle empty menus in general
+                if (itemsToRender.length === 0 && !menu.isDynamic) {
+                    menuList.innerHTML = `<li class="menu-item">Empty</li>`;
+                }
+                
+                // Render new list items
+                itemsToRender.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'menu-item';
+                    if (index === state.activeIndex) {
+                        li.classList.add('selected');
+                    }
+                    li.innerText = item.name;
+                    
+                    // Style for info-only items (like the redirect URI)
+                    if (item.isInfo) {
+                        li.style.fontSize = '12px'; // Make it smaller to fit
+                        li.style.fontWeight = '400';
+                        li.style.wordBreak = 'break-all'; // Wrap if it's too long
+                    }
+                    
+                    // Add chevron if it leads to another screen or has an action
+                    if ((item.screen || item.action) && !item.isInfo) { // Don't add chevron to info items
+                        const chevron = document.createElement('span');
+                        chevron.className = 'chevron';
+                        chevron.innerText = '>';
+                        li.appendChild(chevron);
+                    }
+                    
+                    menuList.appendChild(li);
+                });
+            }
+
+            // =================================================================================
+            // == 5. CLICK WHEEL INTERACTION
+            // =================================================================================
+            
+            let isScrolling = false;
+            let lastAngle = 0;
+            let scrollAccumulator = 0;
+            const TICK_THRESHOLD = 0.25; // Radians to trigger one 'click' (adjust as needed)
+
+            function getWheelCenter() {
+                const rect = wheel.getBoundingClientRect();
+                return {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2
+                };
+            }
+
+            function handleWheelStart(e) {
+                if (e.target === centerButton) return;
+                e.preventDefault();
+                isScrolling = true;
+                const center = getWheelCenter();
+                const x = (e.clientX || e.touches[0].clientX) - center.x;
+                const y = (e.clientY || e.touches[0].clientY) - center.y;
+                lastAngle = Math.atan2(y, x);
+                scrollAccumulator = 0;
+            }
+
+            function handleWheelMove(e) {
+                if (!isScrolling) return;
+                e.preventDefault();
+                
+                const center = getWheelCenter();
+                const x = (e.clientX || e.touches[0].clientX) - center.x;
+                const y = (e.clientY || e.touches[0].clientY) - center.y;
+                const currentAngle = Math.atan2(y, x);
+                
+                let deltaAngle = currentAngle - lastAngle;
+
+                // Handle the -PI to PI wrap-around
+                if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
+                if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
+
+                lastAngle = currentAngle;
+                scrollAccumulator += deltaAngle;
+
+                // If accumulated scroll passes the threshold, trigger a "tick"
+                if (Math.abs(scrollAccumulator) > TICK_THRESHOLD) {
+                    const direction = scrollAccumulator > 0 ? 1 : -1;
+                    navigateMenu(direction);
+                    scrollAccumulator = 0; // Reset accumulator
+                }
+            }
+
+            function handleWheelEnd() {
+                isScrolling = false;
+            }
+
+            function navigateMenu(direction) {
+                const menu = menus[state.activeMenu];
+                if (!menu) return;
+                
+                // Filter items to get the list that is actually rendered
+                const currentItems = menu.items.filter(item => {
+                    if (item.show === 'loggedIn' && !state.accessToken) return false;
+                    if (item.show === 'loggedOut' && state.accessToken) return false;
+                    return true;
+                });
+                
+                if (currentItems.length === 0) return;
+
+                // Play click sound
+                clickSound.currentTime = 0;
+                clickSound.play();
+
+                // Update active index
+                state.activeIndex += direction;
+
+                // Handle wrapping
+                if (state.activeIndex < 0) {
+                    state.activeIndex = currentItems.length - 1;
+                }
+                if (state.activeIndex >= currentItems.length) {
+                    state.activeIndex = 0;
+                }
+
+                // Re-render the screen
+                renderScreen();
+            }
+
+            // Attach Wheel Event Listeners
+            wheel.addEventListener('mousedown', handleWheelStart);
+            document.addEventListener('mousemove', handleWheelMove);
+            document.addEventListener('mouseup', handleWheelEnd);
+            wheel.addEventListener('mouseleave', handleWheelEnd);
+            
+            // Touch Events for mobile
+            wheel.addEventListener('touchstart', handleWheelStart, { passive: false });
+            document.addEventListener('touchmove', handleWheelMove, { passive: false });
+            document.addEventListener('touchend', handleWheelEnd);
 
 
-            // --- Initial Setup ---
-            updateMenuUI();
-            setView('menu');
+            // =================================================================================
+            // == 6. BUTTON CLICK HANDLERS
+            // =================================================================================
+            
+            function handleCenterClick() {
+                const menu = menus[state.activeMenu];
+                if (!menu) return;
 
+                // Get the actual selected item after filtering
+                const currentItems = menu.items.filter(item => {
+                    if (item.show === 'loggedIn' && !state.accessToken) return false;
+                    if (item.show === 'loggedOut' && state.accessToken) return false;
+                    return true;
+                });
+                
+                const selectedItem = currentItems[state.activeIndex];
+                if (!selectedItem || selectedItem.isInfo) return; // Don't do anything for info items
+
+                // Case 1: Item has an action (e.g., login, fetch)
+                if (selectedItem.action) {
+                    selectedItem.action(selectedItem);
+                }
+                
+                // Case 2: Item leads to a new screen
+                if (selectedItem.screen) {
+                    state.activeMenu = selectedItem.screen;
+                    state.menuStack.push(state.activeMenu); // Add to stack for "back" button
+                    state.activeIndex = 0;
+                    renderScreen();
+                }
+                
+                // Case 3: Item is a track
+                if (selectedItem.track) {
+                    // This is where you would trigger playback
+                    console.log("Selected track:", selectedItem.track);
+                    state.nowPlaying = selectedItem.track;
+                    // Go to 'Now Playing' screen
+                    state.activeMenu = 'nowPlaying';
+                    state.menuStack.push(state.activeMenu);
+                    state.activeIndex = 0;
+                    renderScreen();
+                }
+            }
+
+            function handleMenuClick() {
+                // Go back
+                if (state.menuStack.length > 1) {
+                    state.menuStack.pop(); // Remove current screen
+                    state.activeMenu = state.menuStack[state.menuStack.length - 1]; // Get previous
+                    state.activeIndex = 0;
+                    renderScreen();
+                }
+            }
+            
+            centerButton.addEventListener('click', handleCenterClick);
+            menuButton.addEventListener('click', handleMenuClick);
+            
+            // TODO: Implement Play, Next, Prev
+            playButton.addEventListener('click', () => console.log('Play/Pause clicked'));
+            nextButton.addEventListener('click', () => console.log('Next clicked'));
+            prevButton.addEventListener('click', () => console.log('Prev clicked'));
+
+            // =================================================================================
+            // == 7. SPOTIFY AUTH LOGIC (PKCE FLOW)
+            // =================================================================================
+
+            function handleLogin() {
+                if (CLIENT_ID === "") {
+                    // Show error on screen instead of alert
+                    menus.settingsMenu.items = [
+                        { name: 'ERROR:', isInfo: true },
+                        { name: 'CLIENT_ID is missing in the code.', isInfo: true },
+                        { name: 'Please edit the HTML file.', isInfo: true },
+                        { name: 'Back', screen: 'mainMenu' } // Add a back button
+                    ];
+                    state.activeMenu = 'settingsMenu';
+                    state.activeIndex = 3; // Select 'Back'
+                    renderScreen();
+                    return;
+                }
+                
+                // Generate code verifier
+                const codeVerifier = generateRandomString(64);
+                
+                // Generate code challenge
+                generateCodeChallenge(codeVerifier).then(codeChallenge => {
+                    // Save verifier to local storage
+                    localStorage.setItem('spotify_code_verifier', codeVerifier);
+                    
+                    // Create auth URL
+                    const params = new URLSearchParams({
+                        client_id: CLIENT_ID,
+                        response_type: 'code',
+                        redirect_uri: redirectUri,
+                        scope: scopes,
+                        code_challenge_method: 'S256',
+                        code_challenge: codeChallenge
+                    });
+                    
+                    // Redirect user to Spotify login
+                    window.location.href = `${SPOTIFY_AUTH_URL}?${params.toString()}`;
+                });
+            }
+            
+            function handleLogout() {
+                state.accessToken = null;
+                state.tokenExpires = null;
+                localStorage.removeItem('spotify_access_token');
+                localStorage.removeItem('spotify_token_expires');
+                localStorage.removeItem('spotify_code_verifier');
+                
+                // Clear dynamic menus
+                menus.playlistsMenu.items = [];
+                menus.savedSongsMenu.items = [];
+                menus.tracksMenu.items = [];
+                
+                // Reset settings menu in case it was showing an error
+                menus.settingsMenu.items = [
+                    { name: 'Log In to Spotify', action: handleLogin, show: 'loggedOut' },
+                    { name: 'Log Out', action: handleLogout, show: 'loggedIn' },
+                    { name: 'Your Redirect URI:', show: 'loggedOut' },
+                    { name: redirectUri, show: 'loggedOut', isInfo: true }
+                ];
+                
+                // Go to main menu and re-render
+                state.activeMenu = 'mainMenu';
+                state.activeIndex = 0;
+                state.menuStack = ['mainMenu'];
+                renderScreen();
+            }
+
+            // On page load, check if we're coming back from Spotify
+            function handleAuthCallback() {
+                const params = new URLSearchParams(window.location.search);
+                const code = params.get('code');
+
+                if (code) {
+                    // We have a code, now exchange it for a token
+                    getAccessToken(code);
+                }
+            }
+
+            async function getAccessToken(code) {
+                const codeVerifier = localStorage.getItem('spotify_code_verifier');
+
+                if (!codeVerifier) {
+                    console.error("Code verifier not found!");
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(SPOTIFY_TOKEN_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            grant_type: 'authorization_code',
+                            code: code,
+                            redirect_uri: redirectUri,
+                            client_id: CLIENT_ID,
+                            code_verifier: codeVerifier,
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // Save token and expiry time
+                    state.accessToken = data.access_token;
+                    state.tokenExpires = new Date().getTime() + data.expires_in * 1000;
+                    
+                    localStorage.setItem('spotify_access_token', state.accessToken);
+                    localStorage.setItem('spotify_token_expires', state.tokenExpires);
+                    localStorage.removeItem('spotify_code_verifier'); // Clean up
+
+                    // Clear URL params
+                    window.history.replaceState({}, document.title, redirectUri);
+                    
+                    // Re-render the app in a logged-in state
+                    renderScreen();
+                    
+                } catch (error) {
+                    console.error("Error fetching access token:", error);
+                }
+            }
+
+            // --- PKCE Helper Functions ---
+            function generateRandomString(length) {
+                let text = '';
+                const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                for (let i = 0; i < length; i++) {
+                    text += possible.charAt(Math.floor(Math.random() * possible.length));
+                }
+                return text;
+            }
+
+            async function generateCodeChallenge(codeVerifier) {
+                const data = new TextEncoder().encode(codeVerifier);
+                const digest = await window.crypto.subtle.digest('SHA-256', data);
+                return btoa(String.fromCharCode.apply(null, [...new Uint8Array(digest)]))
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=+$/, '');
+            }
+
+
+            // =================================================================================
+            // == 8. SPOTIFY API FETCH LOGIC
+            // =================================================================================
+
+            async function spotifyFetch(endpoint) {
+                if (!state.accessToken) {
+                    console.error("No access token");
+                    handleLogout(); // Log out if token is missing
+                    return null;
+                }
+                
+                // Check for expiry, though we already do this on load
+                if (state.tokenExpires && new Date().getTime() > state.tokenExpires) {
+                    console.log("Access token expired.");
+                    handleLogout();
+                    return null;
+                }
+                
+                const response = await fetch(`${SPOTIFY_API_BASE}${endpoint}`, {
+                    headers: {
+                        'Authorization': `Bearer ${state.accessToken}`
+                    }
+                });
+
+                if (response.status === 401) { // Unauthorized
+                    console.log("Token invalid, logging out.");
+                    handleLogout();
+                    return null;
+                }
+
+                if (!response.ok) {
+                    console.error(`Error fetching ${endpoint}: ${response.statusText}`);
+                    return null;
+                }
+                
+                return response.json();
+            }
+            
+            async function fetchPlaylists() {
+                if (!state.accessToken) {
+                    console.log("Not logged in.");
+                    return;
+                }
+                if (menus.playlistsMenu.items.length > 0) return; // Already fetched
+                
+                const data = await spotifyFetch('/me/playlists?limit=50');
+                if (data && data.items) {
+                    menus.playlistsMenu.items = data.items.map(playlist => ({
+                        name: playlist.name,
+                        screen: 'tracksMenu', // Go to tracks menu on click
+                        action: () => fetchTracks(playlist.tracks.href, playlist.name), // Action to fetch tracks
+                        playlist: playlist // Store playlist data
+                    }));
+                    renderScreen();
+                }
+            }
+
+            async function fetchSavedSongs() {
+                if (!state.accessToken) return;
+                if (menus.savedSongsMenu.items.length > 0) return; // Already fetched
+                
+                const data = await spotifyFetch('/me/tracks?limit=50');
+                if (data && data.items) {
+                    menus.savedSongsMenu.items = data.items.map(item => ({
+                        name: item.track.name,
+                        track: item.track // Store track data
+                    }));
+                    renderScreen();
+                }
+            }
+
+            async function fetchTracks(url, playlistName) {
+                // We need to fetch from the full URL, which is not relative to the API base
+                const relativeUrl = url.replace('https://api.spotify.com/v1', '');
+                
+                const data = await spotifyFetch(relativeUrl);
+                menus.tracksMenu.title = playlistName; // Set title to playlist name
+                
+                if (data && data.items) {
+                    menus.tracksMenu.items = data.items.map(item => ({
+                        name: item.track.name,
+                        track: item.track // Store track data
+                    }));
+                    renderScreen();
+                }
+            }
+            
+            // =================================================================================
+            // == 9. INITIALIZATION
+            // =================================================================================
+            
+            handleAuthCallback(); // Check for auth code on load
+            renderScreen(); // Initial render
         });
     </script>
 </body>
 </html>
+
+
